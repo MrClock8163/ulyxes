@@ -1,14 +1,16 @@
+from __future__ import annotations
+
 import math
 import re
 from enum import Enum, auto
-from typing import Self, TypeAlias, Literal
+from typing import TypeAlias, Literal
 
 
 __all__ = [
-    "RO",
-    "PI2",
-    "AngleUnit",
-    "Angle"
+    'RO',
+    'PI2',
+    'AngleUnit',
+    'Angle'
 ]
 
 
@@ -65,12 +67,12 @@ class Angle:
     def dms2rad(dms: str) -> float:
         """Converts DDD-MM-SS to radians.
         """
-        if not re.search("^[0-9]{1,3}(-[0-9]{1,2}){0,2}$", dms):
+        if not re.search(r"^[0-9]{1,3}(-[0-9]{1,2}){0,2}$", dms):
             raise ValueError("Angle invalid argument", dms)
 
         items = [float(item) for item in dms.split("-")]
         div = 1
-        a = 0
+        a = 0.0
         for val in items:
             a += val / div
             div *= 60
@@ -208,65 +210,65 @@ class Angle:
     def __repr__(self) -> str:
         return f"({type(self).__name__:s}{self._value:f})"
 
-    def __pos__(self) -> Self:
+    def __pos__(self) -> Angle:
         return Angle(self._value)
 
-    def __neg__(self) -> Self:
+    def __neg__(self) -> Angle:
         return Angle(-self._value)
 
-    def __add__(self, other: Self) -> Self:
+    def __add__(self, other: Angle) -> Angle:
         if type(other) is not Angle:
             raise TypeError(f"unsupported operand type(s) for +: 'Angle' and '{type(other).__name__}'")
 
         return Angle(self._value + other._value)
 
-    def __iadd__(self, other: Self) -> Self:
+    def __iadd__(self, other: Angle) -> Angle:
         if type(other) is not Angle:
             raise TypeError(f"unsupported operand type(s) for +=: 'Angle' and '{type(other).__name__}'")
 
         self._value += other._value
         return self
 
-    def __sub__(self, other: Self) -> Self:
+    def __sub__(self, other: Angle) -> Angle:
         if type(other) is not Angle:
             raise TypeError(f"unsupported operand type(s) for -: 'Angle' and '{type(other).__name__}'")
 
         return Angle(self._value - other._value)
 
-    def __isub__(self, other: Self) -> Self:
+    def __isub__(self, other: Angle) -> Angle:
         if type(other) is not Angle:
             raise TypeError(f"unsupported operand type(s) for -=: 'Angle' and '{type(other).__name__}'")
 
         self._value -= other._value
         return self
 
-    def __mul__(self, other: int | float) -> Self:
+    def __mul__(self, other: int | float) -> Angle:
         if type(other) not in (int, float):
             raise TypeError(f"unsupported operand type(s) for *: 'Angle' and '{type(other).__name__}'")
 
         return Angle(self._value * other)
 
-    def __imul__(self, other: int | float) -> Self:
+    def __imul__(self, other: int | float) -> Angle:
         if type(other) not in (int, float):
             raise TypeError(f"unsupported operand type(s) for *=: 'Angle' and '{type(other).__name__}'")
 
         self._value *= other
         return self
 
-    def __truediv__(self, other: int | float) -> Self:
+    def __truediv__(self, other: int | float) -> Angle:
         if type(other) not in (int, float):
             raise TypeError(f"unsupported operand type(s) for /: 'Angle' and '{type(other).__name__}'")
 
         return Angle(self._value / other)
 
-    def __itruediv__(self, other: int | float) -> Self:
+    def __itruediv__(self, other: int | float) -> Angle:
         if type(other) not in (int, float):
             raise TypeError(f"unsupported operand type(s) for /=: 'Angle' and '{type(other).__name__}'")
 
         self._value /= other
         return self
 
-    def __abs__(self) -> Self:
+    def __abs__(self) -> Angle:
         return self.normalized()
 
     def asunit(self, unit: AngleUnit | str = AngleUnit.RAD) -> float | str:
@@ -298,7 +300,7 @@ class Angle:
             case _:
                 raise ValueError(f"unknown target unit: {unit}")
 
-    def normalized(self, positive: bool = True) -> Self:
+    def normalized(self, positive: bool = True) -> Angle:
         """Returns a copy of the angle normalized to full angle.
         """
         return Angle(self._value, AngleUnit.RAD, True, positive)
