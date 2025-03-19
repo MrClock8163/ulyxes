@@ -1,7 +1,7 @@
 import math
 import re
 from enum import Enum, auto
-from typing import Self
+from typing import Self, TypeAlias, Literal
 
 
 __all__ = [
@@ -27,7 +27,7 @@ class AngleUnit(Enum):
     """Degrees"""
 
     PDEG = auto()
-    """Pseudo-degrees (DD.MMSS)"""
+    """Pseudo-degrees (DDD.MMSS)"""
 
     GON = auto()
     """Gradians"""
@@ -42,29 +42,32 @@ class AngleUnit(Enum):
     """DDD-MM-SS"""
 
     NMEA = auto()
-    """NMEA degrees (DDMM.MMMM)"""
+    """NMEA degrees (DDDMM.NNNNNN)"""
+
+
+_AngleUnitLike: TypeAlias = AngleUnit | Literal['RAD', 'DEG', 'PDEG', 'GON', 'MIL', 'SEC', 'DMS', 'NMEA']
 
 
 class Angle:
     @staticmethod
     def deg2rad(angle: float) -> float:
-        """ Convert DEG to RAD
+        """Converts degrees to radians.
         """
         return math.radians(angle)
 
     @staticmethod
     def gon2rad(angle: float) -> float:
-        """ Convert GON to RAD
+        """Converts gradians to radians.
         """
         return angle / 200 * math.pi
 
     @staticmethod
     def dms2rad(dms: str) -> float:
-        """ Convert DMS to RAD
+        """Converts DDD-MM-SS to radians.
         """
         if not re.search("^[0-9]{1,3}(-[0-9]{1,2}){0,2}$", dms):
             raise ValueError("Angle invalid argument", dms)
-        
+
         items = [float(item) for item in dms.split("-")]
         div = 1
         a = 0
@@ -76,7 +79,7 @@ class Angle:
 
     @staticmethod
     def dm2rad(angle: float) -> float:
-        """ Convert DDMM.nnnnnn NMEA angle to radian"
+        """Converts DDDMM.NNNNNN NMEA angle to radians.
         """
         w = angle / 100
         d = int(w)
@@ -84,7 +87,7 @@ class Angle:
 
     @staticmethod
     def pdeg2rad(angle: float) -> float:
-        """ Convert dd.mmss to radian
+        """Converts DDD.MMSS to radians.
         """
         d = math.floor(angle)
         angle = round((angle - d) * 100, 10)
@@ -94,37 +97,37 @@ class Angle:
 
     @staticmethod
     def sec2rad(angle: float) -> float:
-        """ Convert seconds to radian
+        """Converts arcseconds to radians.
         """
         return angle / RO
 
     @staticmethod
     def mil2rad(angle: float) -> float:
-        """ Convert mills to radian
+        """Converts NATO mils to radians.
         """
         return angle / 6400 * 2 * math.pi
 
     @staticmethod
     def rad2gon(angle: float) -> float:
-        """ Convert radian to GON
+        """Converts radians to gradians.
         """
         return angle / math.pi * 200
 
     @staticmethod
     def rad2sec(angle: float) -> float:
-        """ Convert radian to seconds
+        """Converts radians to arcseconds.
         """
         return angle * RO
 
     @staticmethod
     def rad2deg(angle: float) -> float:
-        """ Convert radian to decimal degrees
+        """Converts radians to degrees.
         """
         return math.degrees(angle)
 
     @staticmethod
     def rad2dms(angle: float) -> str:
-        """ Convert radian to DMS
+        """Converts radians to DDD-MM-SS.
         """
         signum = "-" if angle < 0 else ""
         secs = round(abs(angle) * RO)
@@ -135,7 +138,7 @@ class Angle:
 
     @staticmethod
     def rad2dm(angle: float) -> float:
-        """ Convert radian to NMEA DDDMM.nnnnn
+        """Converts radians to NMEA DDDMM.NNNNNNN.
         """
         w = angle / math.pi * 180.0
         d = int(w)
@@ -143,7 +146,7 @@ class Angle:
 
     @staticmethod
     def rad2pdeg(angle: float) -> float:
-        """ Convert radian to pseudo DMS ddd.mmss
+        """Converts radians to DDD.MMSS.
         """
         secs = round(angle * RO)
         mi, sec = divmod(secs, 60)
@@ -153,23 +156,22 @@ class Angle:
 
     @staticmethod
     def rad2mil(angle: float) -> float:
-        """ Convert radian to mills
+        """Converts radian to NATO mils.
         """
         return angle / math.pi / 2 * 6400
-    
+
     @staticmethod
     def normalize_rad(angle: float, positive: float = False) -> float:
+        """Normalizes angle to [+2PI; -2PI] range.
+        """
         norm = angle % PI2
 
         if not positive and angle < 0:
             norm -= PI2
-        
+
         return norm
 
-    def __init__(self, value: float | str, unit: AngleUnit | str = AngleUnit.RAD, /, normalize: bool = False, positive: bool = False):
-        """ Constructor for an angle instance.
-        """
-        
+    def __init__(self, value: float | str, unit: _AngleUnitLike = AngleUnit.RAD, /, normalize: bool = False, positive: bool = False):
         self._value: float = 0
         if type(unit) is str:
             try:
@@ -196,78 +198,80 @@ class Angle:
                 self._value = self.dm2rad(value)
             case _:
                 raise ValueError(f"unknown source unit and value type pair: {unit} - {type(value).__name__}")
-        
+
         if normalize:
             self._value = self.normalize_rad(self._value, positive)
-    
+
     def __str__(self) -> str:
         return f"{self.asunit(AngleUnit.GON):.4f}"
-    
+
     def __repr__(self) -> str:
         return f"({type(self).__name__:s}{self._value:f})"
-    
+
     def __pos__(self) -> Self:
         return Angle(self._value)
-    
+
     def __neg__(self) -> Self:
         return Angle(-self._value)
-    
+
     def __add__(self, other: Self) -> Self:
         if type(other) is not Angle:
             raise TypeError(f"unsupported operand type(s) for +: 'Angle' and '{type(other).__name__}'")
-        
+
         return Angle(self._value + other._value)
-    
+
     def __iadd__(self, other: Self) -> Self:
         if type(other) is not Angle:
             raise TypeError(f"unsupported operand type(s) for +=: 'Angle' and '{type(other).__name__}'")
-        
+
         self._value += other._value
         return self
-    
+
     def __sub__(self, other: Self) -> Self:
         if type(other) is not Angle:
             raise TypeError(f"unsupported operand type(s) for -: 'Angle' and '{type(other).__name__}'")
-        
+
         return Angle(self._value - other._value)
-    
+
     def __isub__(self, other: Self) -> Self:
         if type(other) is not Angle:
             raise TypeError(f"unsupported operand type(s) for -=: 'Angle' and '{type(other).__name__}'")
-        
+
         self._value -= other._value
         return self
-    
+
     def __mul__(self, other: int | float) -> Self:
         if type(other) not in (int, float):
             raise TypeError(f"unsupported operand type(s) for *: 'Angle' and '{type(other).__name__}'")
-        
+
         return Angle(self._value * other)
-    
+
     def __imul__(self, other: int | float) -> Self:
         if type(other) not in (int, float):
             raise TypeError(f"unsupported operand type(s) for *=: 'Angle' and '{type(other).__name__}'")
-        
+
         self._value *= other
         return self
-    
+
     def __truediv__(self, other: int | float) -> Self:
         if type(other) not in (int, float):
             raise TypeError(f"unsupported operand type(s) for /: 'Angle' and '{type(other).__name__}'")
-        
+
         return Angle(self._value / other)
-    
+
     def __itruediv__(self, other: int | float) -> Self:
         if type(other) not in (int, float):
             raise TypeError(f"unsupported operand type(s) for /=: 'Angle' and '{type(other).__name__}'")
-        
+
         self._value /= other
         return self
-    
+
     def __abs__(self) -> Self:
         return self.normalized()
-    
+
     def asunit(self, unit: AngleUnit | str = AngleUnit.RAD) -> float | str:
+        """Returns the value of the angle in the target unit.
+        """
         if type(unit) is str:
             try:
                 unit = AngleUnit[unit]
@@ -293,6 +297,8 @@ class Angle:
                 return self.rad2dm(self._value)
             case _:
                 raise ValueError(f"unknown target unit: {unit}")
-    
+
     def normalized(self, positive: bool = True) -> Self:
+        """Returns a copy of the angle normalized to full angle.
+        """
         return Angle(self._value, AngleUnit.RAD, True, positive)
